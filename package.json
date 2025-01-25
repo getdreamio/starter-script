@@ -1,0 +1,23 @@
+{
+  "name": "starter-script",
+  "description": "Starter script for Dream.mf projects",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "publish": "npm publish"
+  },
+  "bin": {
+    "setup-react": "./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getdreamio/starter-script.git"
+  },
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "degit": "^2.8.4",
+    "inquirer": "^12.3.2"
+  }
+}
