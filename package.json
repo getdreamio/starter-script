@@ -1,14 +1,13 @@
 {
-  "name": "starter-script",
+  "name": "getdreamio",
   "description": "Starter script for Dream.mf projects",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "publish": "npm publish"
+    "start": "node index.js"
   },
   "bin": {
-    "setup-react": "./index.js"
+    "getdreamio": "./index.js"
   },
   "repository": {
     "type": "git",

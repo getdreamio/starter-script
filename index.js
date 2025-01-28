@@ -1,4 +1,17 @@
 #!/usr/bin/env node
+console.clear();
+console.log(`
+▓█████▄  ██▀███  ▓█████  ▄▄▄       ███▄ ▄███▓      ███▄ ▄███▓  █████▒
+▒██▀ ██▌▓██ ▒ ██▒▓█   ▀ ▒████▄    ▓██▒▀█▀ ██▒     ▓██▒▀█▀ ██▒▓██   ▒ 
+░██   █▌▓██ ░▄█ ▒▒███   ▒██  ▀█▄  ▓██    ▓██░     ▓██    ▓██░▒████ ░ 
+░▓█▄   ▌▒██▀▀█▄  ▒▓█  ▄ ░██▄▄▄▄██ ▒██    ▒██      ▒██    ▒██ ░▓█▒  ░ 
+░▒████▓ ░██▓ ▒██▒░▒████▒ ▓█   ▓██▒▒██▒   ░██▒ ██▓ ▒██▒   ░██▒░▒█░    
+ ▒▒▓  ▒ ░ ▒▓ ░▒▓░░░ ▒░ ░ ▒▒   ▓▒█░░ ▒░   ░  ░ ▒▓▒ ░ ▒░   ░  ░ ▒ ░    
+ ░ ▒  ▒   ░▒ ░ ▒░ ░ ░  ░  ▒   ▒▒ ░░  ░      ░ ░▒  ░  ░      ░ ░      
+ ░ ░  ░   ░░   ░    ░     ░   ▒   ░      ░    ░   ░      ░    ░ ░    
+   ░       ░        ░  ░      ░  ░       ░     ░         ░           
+ ░                                             ░                     
+`);
 
 import inquirer from "inquirer"; // ESM import for inquirer
 import { execSync } from "child_process"; // ESM import for child_process
@@ -19,7 +32,12 @@ const runCommand = (command, options = {}) => {
 
 // Main setup logic
 (async () => {
+  console.log(`Version: v1.2.0`);
+  console.log(`https://www.getdream.io/`);
+  console.log("");
   console.log("Thank you for choosing Dream.mf, a module federation framework.");
+  console.log("This setup will guide you through starting a new Dream.mf project.");
+  console.log("");
 
   // Ask for the project name
   const { projectName } = await inquirer.prompt([
@@ -31,36 +49,44 @@ const runCommand = (command, options = {}) => {
     },
   ]);
 
-  console.log(`I will begin creating the "${projectName}" project for you, but first, I need to ask a few questions.`);
+  console.log(`I will begin creating the "${projectName}" project for you, but first, we need to know which version.`);
+  console.log("");
+  console.log("Note: The basic starter includes the standard Dream.mf libraries (oidc, logging, core, bundlers), while");
+  console.log("the complete installation is set up for NX or Remote Orchestration Services.");
+  console.log("");
 
-  // Ask the user for configuration options
-  const answers = await inquirer.prompt([
+  // Ask for the starter type
+  const { starterType } = await inquirer.prompt([
     {
       type: "list",
-      name: "framework",
-      message: "Which web framework are you using?",
-      choices: ["React", "Angular (coming soon)"],
-      default: "React",
-    },
-    {
-      type: "list",
-      name: "bundler",
-      message: "Which bundler would you like to use?",
-      choices: ["Webpack", "Rspack", "Rsbuild"],
-      default: "Webpack",
-    },
-    {
-      type: "confirm",
-      name: "useROS",
-      message: "Would you like to use ROS? (Remote Orchestration Services)\nNotice: You will need Docker or Podman (with Docker alias).",
-      default: true,
+      name: "starterType",
+      message: "Which Dream.mf Starter would you like to use?",
+      choices: [
+        { name: "Basic Starter Project", value: "Basic" },
+        { name: "Complete Dream.mf Platform", value: "Complete" }
+      ],
+      default: "Basic",
     },
   ]);
+
+  // Define repository URLs for each starter type
+  const repoUrls = {
+    Basic: "getdreamio/starter-project-react",
+    Complete: "getdreamio/starter-project-react-complete",
+  };
+
+  // Select the repository based on the starter type
+  const selectedRepoUrl = repoUrls[starterType];
+
+  console.log(`You have chosen the ${starterType} starter.`);
+
+  // Ask the user for configuration options
+  const answers = await inquirer.prompt([]);
 
   console.log("Thank you, getting you started...");
 
   console.log("= Cloning project");
-  const emitter = degit(repoUrl, {
+  const emitter = degit(selectedRepoUrl, {
     cache: false,
     force: true,
   });
@@ -70,12 +96,21 @@ const runCommand = (command, options = {}) => {
     await emitter.clone(projectName);
     console.log("= Project cloned successfully");
 
+    // Check for the existence of pnpm
+    try {
+      console.log("= Checking for pnpm...");
+      execSync('pnpm --version', { stdio: 'ignore' });
+    } catch (err) {
+      console.error('pnpm is not installed. Please install it before proceeding.');
+      process.exit(1);
+    }
+
     // Navigate to the project directory and install dependencies
     console.log("= Installing dependencies...");
-    runCommand(`cd ${projectName} && npm install`);
+    runCommand(`cd ${projectName} && pnpm install`);
 
-    // If ROS is enabled, set up Docker containers
-    if (answers.useROS) {
+    // If Complete is selected, set up Docker containers for ROS
+    if (starterType === "Complete") {
       console.log("= Setting up Docker containers...");
 
       console.log("Starting ROS Backend...");
@@ -95,12 +130,16 @@ Your project "${projectName}" has been set up successfully!
 
 Run the following commands to get started:
   cd ${projectName}
-  npm start
+  pnpm install
+  pnpm start
 
-If you're using ROS, visit:
-  Frontend: http://localhost:3000
-  Backend: http://localhost:5001
+  Frontend: http://localhost:3001
+      `);
+      if (starterType === "Complete") {
+console.log(`
+  ROS Backend: http://localhost:5001
     `);
+}
   } catch (err) {
     console.error("Error during setup:", err.message);
   }
