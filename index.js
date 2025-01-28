@@ -32,7 +32,7 @@ const runCommand = (command, options = {}) => {
 
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.2.0`);
+  console.log(`Version: v1.2.1`);
   console.log(`https://www.getdream.io/`);
   console.log("");
   console.log("Thank you for choosing Dream.mf, a module federation framework.");
