@@ -2,15 +2,15 @@
 console.clear();
 console.log(`
 ▓█████▄  ██▀███  ▓█████  ▄▄▄       ███▄ ▄███▓      ███▄ ▄███▓  █████▒
-▒██▀ ██▌▓██ ▒ ██▒▓█   ▀ ▒████▄    ▓██▒▀█▀ ██▒     ▓██▒▀█▀ ██▒▓██   ▒ 
-░██   █▌▓██ ░▄█ ▒▒███   ▒██  ▀█▄  ▓██    ▓██░     ▓██    ▓██░▒████ ░ 
-░▓█▄   ▌▒██▀▀█▄  ▒▓█  ▄ ░██▄▄▄▄██ ▒██    ▒██      ▒██    ▒██ ░▓█▒  ░ 
-░▒████▓ ░██▓ ▒██▒░▒████▒ ▓█   ▓██▒▒██▒   ░██▒ ██▓ ▒██▒   ░██▒░▒█░    
- ▒▒▓  ▒ ░ ▒▓ ░▒▓░░░ ▒░ ░ ▒▒   ▓▒█░░ ▒░   ░  ░ ▒▓▒ ░ ▒░   ░  ░ ▒ ░    
- ░ ▒  ▒   ░▒ ░ ▒░ ░ ░  ░  ▒   ▒▒ ░░  ░      ░ ░▒  ░  ░      ░ ░      
- ░ ░  ░   ░░   ░    ░     ░   ▒   ░      ░    ░   ░      ░    ░ ░    
-   ░       ░        ░  ░      ░  ░       ░     ░         ░           
- ░                                             ░                     
+▒██▀ ██▌▓██ ▒ ██▒▓█   ▀ ▒████▄    ▓██▒▀█▀ ██▒     ▓██▒▀█▀ ██▒▓██   ▒
+░██   █▌▓██ ░▄█ ▒▒███   ▒██  ▀█▄  ▓██    ▓██░     ▓██    ▓██░▒████ ░
+░▓█▄   ▌▒██▀▀█▄  ▒▓█  ▄ ░██▄▄▄▄██ ▒██    ▒██      ▒██    ▒██ ░▓█▒  ░
+░▒████▓ ░██▓ ▒██▒░▒████▒ ▓█   ▓██▒▒██▒   ░██▒ ██▓ ▒██▒   ░██▒░▒█░
+ ▒▒▓  ▒ ░ ▒▓ ░▒▓░░░ ▒░ ░ ▒▒   ▓▒█░░ ▒░   ░  ░ ▒▓▒ ░ ▒░   ░  ░ ▒ ░
+ ░ ▒  ▒   ░▒ ░ ▒░ ░ ░  ░  ▒   ▒▒ ░░  ░      ░ ░▒  ░  ░      ░ ░
+ ░ ░  ░   ░░   ░    ░     ░   ▒   ░      ░    ░   ░      ░    ░ ░
+   ░       ░        ░  ░      ░  ░       ░     ░         ░
+ ░                                             ░
 `);
 
 import inquirer from "inquirer"; // ESM import for inquirer
@@ -32,11 +32,15 @@ const runCommand = (command, options = {}) => {
 
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.2.1`);
+  console.log(`Version: v1.2.2`);
   console.log(`https://www.getdream.io/`);
   console.log("");
-  console.log("Thank you for choosing Dream.mf, a module federation framework.");
-  console.log("This setup will guide you through starting a new Dream.mf project.");
+  console.log(
+    "Thank you for choosing Dream.mf, a module federation framework.",
+  );
+  console.log(
+    "This setup will guide you through starting a new Dream.mf project.",
+  );
   console.log("");
 
   // Ask for the project name
@@ -49,10 +53,16 @@ const runCommand = (command, options = {}) => {
     },
   ]);
 
-  console.log(`I will begin creating the "${projectName}" project for you, but first, we need to know which version.`);
+  console.log(
+    `I will begin creating the "${projectName}" project for you, but first, we need to know which version.`,
+  );
   console.log("");
-  console.log("Note: The basic starter includes the standard Dream.mf libraries (oidc, logging, core, bundlers), while");
-  console.log("the complete installation is set up for NX or Remote Orchestration Services.");
+  console.log(
+    "Note: The basic starter includes the standard Dream.mf libraries (oidc, logging, core, bundlers), while",
+  );
+  console.log(
+    "the complete installation contains basic and is set up for NX or Remote Orchestration Services.",
+  );
   console.log("");
 
   // Ask for the starter type
@@ -63,7 +73,7 @@ const runCommand = (command, options = {}) => {
       message: "Which Dream.mf Starter would you like to use?",
       choices: [
         { name: "Basic Starter Project", value: "Basic" },
-        { name: "Complete Dream.mf Platform", value: "Complete" }
+        { name: "Complete Dream.mf Platform", value: "Complete" },
       ],
       default: "Basic",
     },
@@ -99,9 +109,11 @@ const runCommand = (command, options = {}) => {
     // Check for the existence of pnpm
     try {
       console.log("= Checking for pnpm...");
-      execSync('pnpm --version', { stdio: 'ignore' });
+      execSync("pnpm --version", { stdio: "ignore" });
     } catch (err) {
-      console.error('pnpm is not installed. Please install it before proceeding.');
+      console.error(
+        "pnpm is not installed. Please install it before proceeding.",
+      );
       process.exit(1);
     }
 
@@ -118,7 +130,7 @@ const runCommand = (command, options = {}) => {
 
       console.log("Starting ROS Frontend...");
       runCommand(
-        `docker run -e BACKEND_URL=https://localhost:5001 -p 3000:80 dreammf/ros-frontend:latest`
+        `docker run -e BACKEND_URL=https://localhost:5001 -p 3000:80 dreammf/ros-frontend:latest`,
       );
 
       console.log("Docker containers are up and running!");
@@ -135,11 +147,11 @@ Run the following commands to get started:
 
   Frontend: http://localhost:3001
       `);
-      if (starterType === "Complete") {
-console.log(`
+    if (starterType === "Complete") {
+      console.log(`
   ROS Backend: http://localhost:5001
     `);
-}
+    }
   } catch (err) {
     console.error("Error during setup:", err.message);
   }
