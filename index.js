@@ -145,12 +145,15 @@ Run the following commands to get started:
   pnpm install
   pnpm start
 
-  Frontend: http://localhost:3001
-      `);
+  Frontend: http://localhost:3001`);
     if (starterType === "Complete") {
       console.log(`ROS Backend: http://localhost:3000`);
       console.log(`ROS Backend: http://localhost:5001`);
     }
+    console.log("");
+    console.log("Thank you for chosing Dream.mf!");
+    console.log("🌟 Star Dream.mf on GitHub: https://github.com/getdreamio");
+    console.log("📢 See the latest updates : https://x.com/getdreamio=");
   } catch (err) {
     console.error("Error during setup:", err.message);
   }
