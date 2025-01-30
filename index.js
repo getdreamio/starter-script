@@ -32,7 +32,7 @@ const runCommand = (command, options = {}) => {
 
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.2.2`);
+  console.log(`Version: v1.3.0`);
   console.log(`https://www.getdream.io/`);
   console.log("");
   console.log(
@@ -61,7 +61,7 @@ const runCommand = (command, options = {}) => {
     "Note: The basic starter includes the standard Dream.mf libraries (oidc, logging, core, bundlers), while",
   );
   console.log(
-    "the complete installation contains basic and is set up for NX or Remote Orchestration Services.",
+    "the complete installation contains basic and is set up for NX and [ROS] Remote Orchestration Services.",
   );
   console.log("");
 
@@ -126,11 +126,11 @@ const runCommand = (command, options = {}) => {
       console.log("= Setting up Docker containers...");
 
       console.log("Starting ROS Backend...");
-      runCommand(`docker run -p 5001:5001 dreammf/ros-backend:latest`);
+      runCommand(`docker run -p 5001:5001 dreammf/ros-backend:0.10.0`);
 
       console.log("Starting ROS Frontend...");
       runCommand(
-        `docker run -e BACKEND_URL=https://localhost:5001 -p 3000:80 dreammf/ros-frontend:latest`,
+        `docker run -e BACKEND_URL=https://localhost:5001 -p 3000:3000 dreammf/ros-frontend:0.10.0`,
       );
 
       console.log("Docker containers are up and running!");
@@ -148,9 +148,8 @@ Run the following commands to get started:
   Frontend: http://localhost:3001
       `);
     if (starterType === "Complete") {
-      console.log(`
-  ROS Backend: http://localhost:5001
-    `);
+      console.log(`ROS Backend: http://localhost:3000`);
+      console.log(`ROS Backend: http://localhost:5001`);
     }
   } catch (err) {
     console.error("Error during setup:", err.message);
