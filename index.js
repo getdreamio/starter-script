@@ -16,6 +16,7 @@ console.log(`
 import inquirer from "inquirer"; // ESM import for inquirer
 import { execSync } from "child_process"; // ESM import for child_process
 import degit from "degit";
+import { existsSync } from "fs"; // ESM import for fs
 
 // Helper function to run shell commands
 const runCommand = (command, options = { stdio: "ignore" }) => {
@@ -53,7 +54,7 @@ const checkContainerRuntime = () => {
 
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.7.2`);
+  console.log(`Version: v1.8.0`);
   console.log(`https://www.getdream.io/`);
   console.log("");
   console.log(
@@ -116,6 +117,12 @@ const checkContainerRuntime = () => {
 
   console.log("Thank you, getting you started...");
 
+  // Check if directory already exists
+  if (existsSync(projectName)) {
+    console.error(`\n❌ Error: Directory "${projectName}" already exists. Please choose a different name or remove the existing directory.`);
+    process.exit(1);
+  }
+
   console.log("= Cloning project");
   const emitter = degit(selectedRepoUrl, {
     cache: false,
@@ -133,7 +140,7 @@ const checkContainerRuntime = () => {
       execSync("pnpm --version", { stdio: "ignore" });
     } catch (err) {
       console.error(
-        "pnpm is not installed. Please install it before proceeding.",
+        "\n❌ Error: pnpm is not installed. Please install it before proceeding.",
       );
       process.exit(1);
     }
@@ -147,6 +154,20 @@ const checkContainerRuntime = () => {
       console.log("= Setting up containers...");
       const containerRuntime = checkContainerRuntime();
       console.log(`= Using ${containerRuntime} as container runtime...`);
+
+      // Stop and remove existing containers
+      console.log("= Cleaning up any existing containers...");
+      try {
+        // Stop and remove ROS Backend container
+        execSync(`${containerRuntime} stop $(${containerRuntime} ps -q --filter ancestor=dreammf/ros-backend:latest)`, { stdio: "ignore" });
+        execSync(`${containerRuntime} rm $(${containerRuntime} ps -aq --filter ancestor=dreammf/ros-backend:latest)`, { stdio: "ignore" });
+        
+        // Stop and remove ROS Frontend container
+        execSync(`${containerRuntime} stop $(${containerRuntime} ps -q --filter ancestor=dreammf/ros-frontend:latest)`, { stdio: "ignore" });
+        execSync(`${containerRuntime} rm $(${containerRuntime} ps -aq --filter ancestor=dreammf/ros-frontend:latest)`, { stdio: "ignore" });
+      } catch (err) {
+        // Ignore errors as they likely mean no containers were running
+      }
 
       console.log("= Starting ROS Backend...");
       runCommand(
@@ -185,6 +206,6 @@ Run the following commands to get started:
     console.log("🌟 Star Dream.mf on GitHub: https://github.com/getdreamio");
     console.log("📢 See the latest updates : https://x.com/getdreamio");
   } catch (err) {
-    console.error("Error during setup:", err.message);
+    console.error("\n❌ Error: Error during setup:", err.message);
   }
 })();
