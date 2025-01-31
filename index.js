@@ -32,7 +32,7 @@ const runCommand = (command, options = {}) => {
 
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.3.0`);
+  console.log(`Version: v1.3.2`);
   console.log(`https://www.getdream.io/`);
   console.log("");
   console.log(
@@ -145,9 +145,9 @@ Run the following commands to get started:
   pnpm install
   pnpm start
 
-  Frontend: http://localhost:3001`);
+  Starter Frontend: http://localhost:3001`);
     if (starterType === "Complete") {
-      console.log(`ROS Backend: http://localhost:3000`);
+      console.log(`ROS Frontend: http://localhost:3000`);
       console.log(`ROS Backend: http://localhost:5001`);
     }
     console.log("");
