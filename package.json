@@ -1,7 +1,7 @@
 {
   "name": "getdreamio",
   "description": "Starter script for Dream.mf projects",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"

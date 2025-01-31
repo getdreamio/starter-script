@@ -32,7 +32,7 @@ const runCommand = (command, options = {}) => {
 
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.3.2`);
+  console.log(`Version: v1.3.3`);
   console.log(`https://www.getdream.io/`);
   console.log("");
   console.log(
@@ -130,7 +130,7 @@ const runCommand = (command, options = {}) => {
 
       console.log("Starting ROS Frontend...");
       runCommand(
-        `docker run -e BACKEND_URL=https://localhost:5001 -p 3000:3000 dreammf/ros-frontend:0.10.0`,
+        `docker run -e BACKEND_URL=https://localhost:5001 -p 3000:80 dreammf/ros-frontend:0.10.0`,
       );
 
       console.log("Docker containers are up and running!");
