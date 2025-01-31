@@ -41,7 +41,7 @@ pnpm start
 
 If you're using the Complete option, access the services at:
 - Frontend: http://localhost:3001
-- ROS Backend: http://localhost:5001
+- ROS Backend: http://localhost:4001
 
 ## License
 

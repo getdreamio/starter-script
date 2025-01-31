@@ -29,7 +29,7 @@ const runCommand = (command, options = {}) => {
 
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.5.1`);
+  console.log(`Version: v1.6.0`);
   console.log(`https://www.getdream.io/`);
   console.log("");
   console.log(
@@ -123,11 +123,11 @@ const runCommand = (command, options = {}) => {
       console.log("= Setting up Docker containers...");
 
       console.log("Starting ROS Backend...");
-      runCommand(`docker run -d -p 5001:5001 dreammf/ros-backend:latest`);
+      runCommand(`docker run -d -p 4001:4001 dreammf/ros-backend:latest`);
 
       console.log("Starting ROS Frontend...");
       runCommand(
-        `docker run -d -e BACKEND_URL=https://localhost:5001 -p 3000:80 dreammf/ros-frontend:latest`,
+        `docker run -d -e BACKEND_URL=https://localhost:4001 -p 3000:80 dreammf/ros-frontend:latest`,
       );
 
       console.log("Docker containers are up and running!");
@@ -146,7 +146,7 @@ Run the following commands to get started:
     console.log(`Starter Frontend: http://localhost:3001`);
     if (starterType === "Complete") {
       console.log(`ROS Frontend: http://localhost:3000`);
-      console.log(`ROS Backend: http://localhost:5001`);
+      console.log(`ROS Backend: http://localhost:4001`);
       console.log(`Login: root@dreammf.com / Dr34m!12345`);
     }
     console.log("");
