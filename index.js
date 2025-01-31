@@ -17,9 +17,6 @@ import inquirer from "inquirer"; // ESM import for inquirer
 import { execSync } from "child_process"; // ESM import for child_process
 import degit from "degit";
 
-// Define the repository URL
-const repoUrl = "getdreamio/starter-project-react";
-
 // Helper function to run shell commands
 const runCommand = (command, options = {}) => {
   try {
@@ -32,7 +29,7 @@ const runCommand = (command, options = {}) => {
 
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.3.4`);
+  console.log(`Version: v1.4.0`);
   console.log(`https://www.getdream.io/`);
   console.log("");
   console.log(
@@ -126,11 +123,11 @@ const runCommand = (command, options = {}) => {
       console.log("= Setting up Docker containers...");
 
       console.log("Starting ROS Backend...");
-      runCommand(`docker run -p 5001:5001 dreammf/ros-backend:0.10.1`);
+      runCommand(`docker run -d -p 5001:5001 dreammf/ros-backend:0.10.1`);
 
       console.log("Starting ROS Frontend...");
       runCommand(
-        `docker run -e BACKEND_URL=https://localhost:5001 -p 3000:80 dreammf/ros-frontend:0.10.1`,
+        `docker run -d -e BACKEND_URL=https://localhost:5001 -p 3000:80 dreammf/ros-frontend:0.10.1`,
       );
 
       console.log("Docker containers are up and running!");
