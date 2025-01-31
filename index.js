@@ -29,7 +29,7 @@ const runCommand = (command, options = {}) => {
 
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.4.0`);
+  console.log(`Version: v1.5.0`);
   console.log(`https://www.getdream.io/`);
   console.log("");
   console.log(
@@ -140,12 +140,14 @@ Your project "${projectName}" has been set up successfully!
 Run the following commands to get started:
   cd ${projectName}
   pnpm install
-  pnpm start
+  ${starterType === "Complete" ? "npx nx run-many -t serve --watch" : "pnpm start"}
+`);
 
-  Starter Frontend: http://localhost:3001`);
+    console.log(`Starter Frontend: http://localhost:3001`);
     if (starterType === "Complete") {
       console.log(`ROS Frontend: http://localhost:3000`);
       console.log(`ROS Backend: http://localhost:5001`);
+      console.log(`Login: root@dreammf.com / Dr34m!12345`);
     }
     console.log("");
     console.log("Thank you for chosing Dream.mf!");
