@@ -18,7 +18,7 @@ import { execSync } from "child_process"; // ESM import for child_process
 import degit from "degit";
 
 // Helper function to run shell commands
-const runCommand = (command, options = { stdio: 'ignore' }) => {
+const runCommand = (command, options = { stdio: "ignore" }) => {
   try {
     execSync(command, options);
   } catch (err) {
@@ -31,17 +31,21 @@ const runCommand = (command, options = { stdio: 'ignore' }) => {
 const checkContainerRuntime = () => {
   try {
     // First try Docker
-    execSync('docker --version', { stdio: 'ignore' });
-    return 'docker';
+    execSync("docker --version", { stdio: "ignore" });
+    return "docker";
   } catch (err) {
     try {
       // Then try Podman
-      execSync('podman --version', { stdio: 'ignore' });
-      return 'podman';
+      execSync("podman --version", { stdio: "ignore" });
+      return "podman";
     } catch (err) {
-      console.error('\n❌ Error: Neither Docker nor Podman is installed on your system.');
-      console.log('Please install either Docker (https://docs.docker.com/get-docker/)');
-      console.log('or Podman (https://podman.io/getting-started/installation)');
+      console.error(
+        "\n❌ Error: Neither Docker nor Podman is installed on your system.",
+      );
+      console.log(
+        "Please install either Docker (https://docs.docker.com/get-docker/)",
+      );
+      console.log("or Podman (https://podman.io/getting-started/installation)");
       process.exit(1);
     }
   }
@@ -49,7 +53,7 @@ const checkContainerRuntime = () => {
 
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.7.1`);
+  console.log(`Version: v1.7.2`);
   console.log(`https://www.getdream.io/`);
   console.log("");
   console.log(
@@ -142,39 +146,44 @@ const checkContainerRuntime = () => {
     if (starterType === "Complete") {
       console.log("= Setting up containers...");
       const containerRuntime = checkContainerRuntime();
-      console.log(`Using ${containerRuntime} as container runtime`);
+      console.log(`= Using ${containerRuntime} as container runtime...`);
 
-      console.log("Starting ROS Backend...");
-      runCommand(`${containerRuntime} run -d -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`);
+      console.log("= Starting ROS Backend...");
+      runCommand(
+        `${containerRuntime} run -d -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
+      );
 
-      console.log("Starting ROS Frontend...");
+      console.log("= Starting ROS Frontend...");
       runCommand(
         `${containerRuntime} run -d -e BACKEND_URL=https://localhost:4001 -p 3000:80 dreammf/ros-frontend:latest`,
       );
 
-      console.log("Containers are up and running!");
+      console.log("= Containers are up and running!");
     }
 
-    console.log("Finished!");
-    console.log(`
-Your project "${projectName}" has been set up successfully!
+    console.log(`Finished! Your project "${projectName}" has been set up successfully!
+
+===========================================
 
 Run the following commands to get started:
   cd ${projectName}
-  pnpm install
   ${starterType === "Complete" ? "npx nx run-many -t serve --watch" : "pnpm start"}
 `);
 
     console.log(`Starter Frontend: http://localhost:3001`);
+    console.log(`Auth0 Login: testuser@dream.mf / Password123`);
+    console.log("");
     if (starterType === "Complete") {
       console.log(`ROS Frontend: http://localhost:3000`);
       console.log(`ROS Backend: https://localhost:4001`);
-      console.log(`Login: root@dreammf.com / Dr34m!12345`);
+      console.log(`ROS Login: root@dreammf.com / Dr34m!12345`);
     }
+    console.log("");
+    console.log("===========================================");
     console.log("");
     console.log("Thank you for chosing Dream.mf!");
     console.log("🌟 Star Dream.mf on GitHub: https://github.com/getdreamio");
-    console.log("📢 See the latest updates : https://x.com/getdreamio=");
+    console.log("📢 See the latest updates : https://x.com/getdreamio");
   } catch (err) {
     console.error("Error during setup:", err.message);
   }
