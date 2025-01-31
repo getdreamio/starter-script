@@ -54,7 +54,7 @@ const checkContainerRuntime = () => {
 
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.8.3`);
+  console.log(`Version: v1.8.6`);
   console.log(`https://www.getdream.io/`);
   console.log("");
   console.log(
@@ -117,9 +117,22 @@ const checkContainerRuntime = () => {
 
   console.log("Thank you, getting you started...");
 
+  // Check for the existence of pnpm
+  try {
+    console.log("= Checking for pnpm...");
+    execSync("pnpm --version", { stdio: "ignore" });
+  } catch (err) {
+    console.error(
+      "\n❌ Error: pnpm is not installed. Please install it before proceeding. (npm install -g pnpm)",
+    );
+    process.exit(1);
+  }
+
   // Check if directory already exists
   if (existsSync(projectName)) {
-    console.error(`\n❌ Error: Directory "${projectName}" already exists. Please choose a different name or remove the existing directory.`);
+    console.error(
+      `\n❌ Error: Directory "${projectName}" already exists. Please choose a different name or remove the existing directory.`,
+    );
     process.exit(1);
   }
 
@@ -133,17 +146,6 @@ const checkContainerRuntime = () => {
     // Clone the repository
     await emitter.clone(projectName);
     console.log("= Project cloned successfully");
-
-    // Check for the existence of pnpm
-    try {
-      console.log("= Checking for pnpm...");
-      execSync("pnpm --version", { stdio: "ignore" });
-    } catch (err) {
-      console.error(
-        "\n❌ Error: pnpm is not installed. Please install it before proceeding.",
-      );
-      process.exit(1);
-    }
 
     // Navigate to the project directory and install dependencies
     console.log("= Installing dependencies...");
@@ -159,24 +161,36 @@ const checkContainerRuntime = () => {
       console.log("= Cleaning up any existing containers...");
       try {
         // Stop and remove ROS Backend container
-        execSync(`${containerRuntime} stop $(${containerRuntime} ps -q --filter ancestor=dreammf/ros-backend:latest)`, { stdio: "ignore" });
-        execSync(`${containerRuntime} rm $(${containerRuntime} ps -aq --filter ancestor=dreammf/ros-backend:latest)`, { stdio: "ignore" });
-        
+        execSync(
+          `${containerRuntime} stop $(${containerRuntime} ps -q --filter ancestor=dreammf/ros-backend:latest)`,
+          { stdio: "ignore" },
+        );
+        execSync(
+          `${containerRuntime} rm $(${containerRuntime} ps -aq --filter ancestor=dreammf/ros-backend:latest)`,
+          { stdio: "ignore" },
+        );
+
         // Stop and remove ROS Frontend container
-        execSync(`${containerRuntime} stop $(${containerRuntime} ps -q --filter ancestor=dreammf/ros-frontend:latest)`, { stdio: "ignore" });
-        execSync(`${containerRuntime} rm $(${containerRuntime} ps -aq --filter ancestor=dreammf/ros-frontend:latest)`, { stdio: "ignore" });
+        execSync(
+          `${containerRuntime} stop $(${containerRuntime} ps -q --filter ancestor=dreammf/ros-frontend:latest)`,
+          { stdio: "ignore" },
+        );
+        execSync(
+          `${containerRuntime} rm $(${containerRuntime} ps -aq --filter ancestor=dreammf/ros-frontend:latest)`,
+          { stdio: "ignore" },
+        );
       } catch (err) {
         // Ignore errors as they likely mean no containers were running
       }
 
       console.log("= Starting ROS Backend...");
       runCommand(
-        `${containerRuntime} run -d -p 4001:4001 -p 4000:4000 ${containerRuntime === 'podman' ? '--tls-verify=false' : ''} dreammf/ros-backend:latest`,
+        `${containerRuntime} run -d -p 4001:4001 -p 4000:4000 ${containerRuntime === "podman" ? "--tls-verify=false" : ""} dreammf/ros-backend:latest`,
       );
 
       console.log("= Starting ROS Frontend...");
       runCommand(
-        `${containerRuntime} run -d -e BACKEND_URL=https://localhost:4001 -p 3000:80 ${containerRuntime === 'podman' ? '--tls-verify=false' : ''} dreammf/ros-frontend:latest`,
+        `${containerRuntime} run -d -e BACKEND_URL=http://localhost:4000 -p 3000:80 ${containerRuntime === "podman" ? "--tls-verify=false" : ""} dreammf/ros-frontend:latest`,
       );
 
       console.log("= Containers are up and running!");
