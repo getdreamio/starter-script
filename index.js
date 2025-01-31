@@ -54,7 +54,7 @@ const checkContainerRuntime = () => {
 
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.8.0`);
+  console.log(`Version: v1.8.3`);
   console.log(`https://www.getdream.io/`);
   console.log("");
   console.log(
@@ -171,12 +171,12 @@ const checkContainerRuntime = () => {
 
       console.log("= Starting ROS Backend...");
       runCommand(
-        `${containerRuntime} run -d -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
+        `${containerRuntime} run -d -p 4001:4001 -p 4000:4000 ${containerRuntime === 'podman' ? '--tls-verify=false' : ''} dreammf/ros-backend:latest`,
       );
 
       console.log("= Starting ROS Frontend...");
       runCommand(
-        `${containerRuntime} run -d -e BACKEND_URL=https://localhost:4001 -p 3000:80 dreammf/ros-frontend:latest`,
+        `${containerRuntime} run -d -e BACKEND_URL=https://localhost:4001 -p 3000:80 ${containerRuntime === 'podman' ? '--tls-verify=false' : ''} dreammf/ros-frontend:latest`,
       );
 
       console.log("= Containers are up and running!");
@@ -196,7 +196,8 @@ Run the following commands to get started:
     console.log("");
     if (starterType === "Complete") {
       console.log(`ROS Frontend: http://localhost:3000`);
-      console.log(`ROS Backend: https://localhost:4001`);
+      console.log(`ROS Backend: http://localhost:4000`);
+      console.log(`ROS Backend (https): https://localhost:4001`);
       console.log(`ROS Login: root@dreammf.com / Dr34m!12345`);
     }
     console.log("");
@@ -208,4 +209,6 @@ Run the following commands to get started:
   } catch (err) {
     console.error("\n❌ Error: Error during setup:", err.message);
   }
+
+  process.exit(0);
 })();
