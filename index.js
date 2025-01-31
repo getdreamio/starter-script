@@ -29,7 +29,7 @@ const runCommand = (command, options = {}) => {
 
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.6.0`);
+  console.log(`Version: v1.6.1`);
   console.log(`https://www.getdream.io/`);
   console.log("");
   console.log(
@@ -146,7 +146,7 @@ Run the following commands to get started:
     console.log(`Starter Frontend: http://localhost:3001`);
     if (starterType === "Complete") {
       console.log(`ROS Frontend: http://localhost:3000`);
-      console.log(`ROS Backend: http://localhost:4001`);
+      console.log(`ROS Backend: https://localhost:4001`);
       console.log(`Login: root@dreammf.com / Dr34m!12345`);
     }
     console.log("");
