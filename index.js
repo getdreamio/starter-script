@@ -18,18 +18,38 @@ import { execSync } from "child_process"; // ESM import for child_process
 import degit from "degit";
 
 // Helper function to run shell commands
-const runCommand = (command, options = {}) => {
+const runCommand = (command, options = { stdio: 'ignore' }) => {
   try {
-    execSync(command, { stdio: "inherit", ...options });
+    execSync(command, options);
   } catch (err) {
     console.error(`Failed to execute: ${command}`);
     process.exit(1);
   }
 };
 
+// Helper function to check container runtime availability
+const checkContainerRuntime = () => {
+  try {
+    // First try Docker
+    execSync('docker --version', { stdio: 'ignore' });
+    return 'docker';
+  } catch (err) {
+    try {
+      // Then try Podman
+      execSync('podman --version', { stdio: 'ignore' });
+      return 'podman';
+    } catch (err) {
+      console.error('\n❌ Error: Neither Docker nor Podman is installed on your system.');
+      console.log('Please install either Docker (https://docs.docker.com/get-docker/)');
+      console.log('or Podman (https://podman.io/getting-started/installation)');
+      process.exit(1);
+    }
+  }
+};
+
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.6.1`);
+  console.log(`Version: v1.7.1`);
   console.log(`https://www.getdream.io/`);
   console.log("");
   console.log(
@@ -120,17 +140,19 @@ const runCommand = (command, options = {}) => {
 
     // If Complete is selected, set up Docker containers for ROS
     if (starterType === "Complete") {
-      console.log("= Setting up Docker containers...");
+      console.log("= Setting up containers...");
+      const containerRuntime = checkContainerRuntime();
+      console.log(`Using ${containerRuntime} as container runtime`);
 
       console.log("Starting ROS Backend...");
-      runCommand(`docker run -d -p 4001:4001 dreammf/ros-backend:latest`);
+      runCommand(`${containerRuntime} run -d -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`);
 
       console.log("Starting ROS Frontend...");
       runCommand(
-        `docker run -d -e BACKEND_URL=https://localhost:4001 -p 3000:80 dreammf/ros-frontend:latest`,
+        `${containerRuntime} run -d -e BACKEND_URL=https://localhost:4001 -p 3000:80 dreammf/ros-frontend:latest`,
       );
 
-      console.log("Docker containers are up and running!");
+      console.log("Containers are up and running!");
     }
 
     console.log("Finished!");
