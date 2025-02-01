@@ -54,7 +54,7 @@ const checkContainerRuntime = () => {
 
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.8.6`);
+  console.log(`Version: v1.8.7`);
   console.log(`https://www.getdream.io/`);
   console.log("");
   console.log(
@@ -212,7 +212,7 @@ Run the following commands to get started:
       console.log(`ROS Frontend: http://localhost:3000`);
       console.log(`ROS Backend: http://localhost:4000`);
       console.log(`ROS Backend (https): https://localhost:4001`);
-      console.log(`ROS Login: root@dreammf.com / Dr34m!12345`);
+      console.log(`ROS Login: root@getdream.io / Dr34m!12345`);
     }
     console.log("");
     console.log("===========================================");
