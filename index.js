@@ -52,6 +52,44 @@ const checkContainerRuntime = () => {
   }
 };
 
+// Function to display the thank you message
+const displayThankYou = () => {
+  console.log("");
+  console.log("===========================================");
+  console.log("");
+  console.log("Thank you for choosing Dream.mf!");
+  console.log(" Star Dream.mf on GitHub: https://github.com/getdreamio");
+  console.log(" See the latest updates : https://x.com/getdreamio");
+  console.log("");
+  console.log("===========================================");
+  console.log("");
+};
+
+// Function to display the final summary
+const displaySummary = (projectName, starterType) => {
+  console.log(`Finished! Your project "${projectName}" has been set up successfully!
+
+===========================================
+
+Run the following commands to get started:
+  cd ${projectName}
+  ${starterType === "Complete" ? "npx nx run-many -t serve --watch" : "pnpm start"}
+`);
+  console.log(`Starter Frontend: http://localhost:3001`);
+  console.log(`Auth0 Login: testuser@dream.mf / Password123`);
+  console.log("");
+  if (starterType === "Complete") {
+    console.log(`ROS Frontend: http://localhost:3000`);
+    console.log(`ROS Backend: http://localhost:4000`);
+    console.log(`ROS Backend (https): https://localhost:4001`);
+    console.log(`ROS Login: root@getdream.io / Dr34m!12345`);
+  }
+  console.log("");
+  console.log("===========================================");
+  console.log("");
+  displayThankYou();
+};
+
 // Main setup logic
 (async () => {
   console.log(`Version: v1.8.7`);
@@ -130,99 +168,163 @@ const checkContainerRuntime = () => {
 
   // Check if directory already exists
   if (existsSync(projectName)) {
-    console.error(
-      `\n❌ Error: Directory "${projectName}" already exists. Please choose a different name or remove the existing directory.`,
-    );
-    process.exit(1);
+    if (starterType === "Complete") {
+      console.log(`= Directory "${projectName}" already exists. Proceeding with container setup...`);
+    } else {
+      console.error(
+        `\n❌ Error: Directory "${projectName}" already exists. Please choose a different name or remove the existing directory.`,
+      );
+      process.exit(1);
+    }
   }
 
-  console.log("= Cloning project");
-  const emitter = degit(selectedRepoUrl, {
-    cache: false,
-    force: true,
-  });
+  if (!existsSync(projectName)) {
+    console.log("= Cloning project");
+    const emitter = degit(selectedRepoUrl, {
+      cache: false,
+      force: true,
+    });
 
-  try {
-    // Clone the repository
-    await emitter.clone(projectName);
-    console.log("= Project cloned successfully");
+    try {
+      // Clone the repository
+      await emitter.clone(projectName);
+      console.log("= Project cloned successfully");
 
-    // Navigate to the project directory and install dependencies
-    console.log("= Installing dependencies...");
-    runCommand(`cd ${projectName} && pnpm install`);
+      // Navigate to the project directory and install dependencies
+      console.log("= Installing dependencies...");
+      runCommand(`cd ${projectName} && pnpm install`);
+    } catch (error) {
+      console.error("Error during project setup:", error);
+      process.exit(1);
+    }
+  }
 
-    // If Complete is selected, set up Docker containers for ROS
-    if (starterType === "Complete") {
-      console.log("= Setting up containers...");
-      const containerRuntime = checkContainerRuntime();
-      console.log(`= Using ${containerRuntime} as container runtime...`);
+  // If Complete is selected, set up Docker containers for ROS
+  if (starterType === "Complete") {
+    console.log("= Setting up containers...");
+    const containerRuntime = checkContainerRuntime();
+    console.log(`= Using ${containerRuntime} as container runtime...`);
 
-      // Stop and remove existing containers
-      console.log("= Cleaning up any existing containers...");
-      try {
-        // Stop and remove ROS Backend container
-        execSync(
-          `${containerRuntime} stop $(${containerRuntime} ps -q --filter ancestor=dreammf/ros-backend:latest)`,
-          { stdio: "ignore" },
-        );
-        execSync(
-          `${containerRuntime} rm $(${containerRuntime} ps -aq --filter ancestor=dreammf/ros-backend:latest)`,
-          { stdio: "ignore" },
-        );
+    try {
+      // Check if ROS images exist
+      const backendImage = execSync(
+        `${containerRuntime} images dreammf/ros-backend:latest --format "{{.Repository}}"`,
+        { encoding: 'utf-8', stdio: 'pipe' }
+      ).trim();
+      
+      const frontendImage = execSync(
+        `${containerRuntime} images dreammf/ros-frontend:latest --format "{{.Repository}}"`,
+        { encoding: 'utf-8', stdio: 'pipe' }
+      ).trim();
 
-        // Stop and remove ROS Frontend container
-        execSync(
-          `${containerRuntime} stop $(${containerRuntime} ps -q --filter ancestor=dreammf/ros-frontend:latest)`,
-          { stdio: "ignore" },
-        );
-        execSync(
-          `${containerRuntime} rm $(${containerRuntime} ps -aq --filter ancestor=dreammf/ros-frontend:latest)`,
-          { stdio: "ignore" },
-        );
-      } catch (err) {
-        // Ignore errors as they likely mean no containers were running
+      if (backendImage || frontendImage) {
+        const { updateImages } = await inquirer.prompt([
+          {
+            type: "list",
+            name: "updateImages",
+            message: "Existing ROS images detected. Would you like to update them? (Warning: You may experience data loss)",
+            choices: [
+              { name: "Yes, update to latest version", value: true },
+              { name: "No, use existing version", value: false }
+            ],
+            default: true,
+          }
+        ]);
+
+        if (!updateImages) {
+          console.log("Using existing ROS images...");
+          displayThankYou();
+          process.exit(0);
+        }
       }
 
-      console.log("= Starting ROS Backend...");
-      runCommand(
-        `${containerRuntime} run -d -p 4001:4001 -p 4000:4000 ${containerRuntime === "podman" ? "--tls-verify=false" : ""} dreammf/ros-backend:latest`,
-      );
+      // Check for existing containers and handle accordingly
+      console.log("= Checking existing containers...");
+      try {
+        // Stop and remove containers using our required ports
+        console.log("= Checking for containers using required ports...");
+        try {
+          const portContainers = execSync(
+            `${containerRuntime} ps -q -f publish=4000 -f publish=4001 -f publish=3000`,
+            { encoding: 'utf-8' }
+          ).trim();
+          
+          if (portContainers) {
+            console.log("= Stopping containers using our ports...");
+            portContainers.split('\n').forEach(containerId => {
+              if (containerId) {
+                execSync(`${containerRuntime} stop ${containerId}`, { stdio: "ignore" });
+                execSync(`${containerRuntime} rm -f ${containerId}`, { stdio: "ignore" });
+              }
+            });
+          }
+        } catch (e) {
+          // Ignore errors if no containers found
+        }
 
-      console.log("= Starting ROS Frontend...");
-      runCommand(
-        `${containerRuntime} run -d -e BACKEND_URL=http://localhost:4000 -p 3000:80 ${containerRuntime === "podman" ? "--tls-verify=false" : ""} dreammf/ros-frontend:latest`,
-      );
+        // Remove any existing ROS containers
+        console.log("= Removing existing ROS containers...");
+        const rosContainers = execSync(
+          `${containerRuntime} ps -aq --filter ancestor=dreammf/ros-backend:latest --filter ancestor=dreammf/ros-frontend:latest`,
+          { encoding: 'utf-8' }
+        ).trim();
 
-      console.log("= Containers are up and running!");
+        if (rosContainers) {
+          rosContainers.split('\n').forEach(containerId => {
+            if (containerId) {
+              execSync(`${containerRuntime} rm -f ${containerId}`, { stdio: "ignore" });
+            }
+          });
+        }
+
+        // Remove existing images to force new pulls
+        console.log("= Removing existing images...");
+        try {
+          execSync(`${containerRuntime} rmi -f dreammf/ros-backend:latest`, { stdio: "ignore" });
+          execSync(`${containerRuntime} rmi -f dreammf/ros-frontend:latest`, { stdio: "ignore" });
+        } catch (e) {
+          // Ignore errors if images don't exist
+        }
+
+        // Force pull latest images
+        console.log("= Pulling latest container images...");
+        execSync(`${containerRuntime} pull dreammf/ros-backend:latest`, { stdio: "ignore" });
+        execSync(`${containerRuntime} pull dreammf/ros-frontend:latest`, { stdio: "ignore" });
+
+        // Start containers with latest images
+        console.log("= Starting ROS Backend...");
+        try {
+          execSync(
+            `${containerRuntime} run -d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
+            { stdio: "ignore" }
+          );
+        } catch (err) {
+          console.error("Error starting ROS Backend:", err.message);
+          process.exit(1);
+        }
+
+        console.log("= Starting ROS Frontend...");
+        try {
+          execSync(
+            `${containerRuntime} run -d --rm -e BACKEND_URL=http://localhost:4000 -p 3000:80 dreammf/ros-frontend:latest`,
+            { stdio: "ignore" }
+          );
+        } catch (err) {
+          console.error("Error starting ROS Frontend:", err.message);
+          process.exit(1);
+        }
+      } catch (err) {
+        console.error("Error managing containers:", err.message);
+        process.exit(1);
+      }
+    } catch (err) {
+      console.error("Error during container setup:", err.message);
+      process.exit(1);
     }
-
-    console.log(`Finished! Your project "${projectName}" has been set up successfully!
-
-===========================================
-
-Run the following commands to get started:
-  cd ${projectName}
-  ${starterType === "Complete" ? "npx nx run-many -t serve --watch" : "pnpm start"}
-`);
-
-    console.log(`Starter Frontend: http://localhost:3001`);
-    console.log(`Auth0 Login: testuser@dream.mf / Password123`);
-    console.log("");
-    if (starterType === "Complete") {
-      console.log(`ROS Frontend: http://localhost:3000`);
-      console.log(`ROS Backend: http://localhost:4000`);
-      console.log(`ROS Backend (https): https://localhost:4001`);
-      console.log(`ROS Login: root@getdream.io / Dr34m!12345`);
-    }
-    console.log("");
-    console.log("===========================================");
-    console.log("");
-    console.log("Thank you for chosing Dream.mf!");
-    console.log("🌟 Star Dream.mf on GitHub: https://github.com/getdreamio");
-    console.log("📢 See the latest updates : https://x.com/getdreamio");
-  } catch (err) {
-    console.error("\n❌ Error: Error during setup:", err.message);
   }
 
+  displaySummary(projectName, starterType);
   process.exit(0);
-})();
+})().catch((err) => {
+  console.error("\n❌ Error: Error during setup:", err.message);
+});
