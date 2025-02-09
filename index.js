@@ -18,6 +18,8 @@ import { execSync } from "child_process"; // ESM import for child_process
 import degit from "degit";
 import { existsSync } from "fs"; // ESM import for fs
 
+const currentVersion = "v1.9.1";
+
 // Helper function to run shell commands
 const runCommand = (command, options = { stdio: "ignore" }) => {
   try {
@@ -92,7 +94,7 @@ Run the following commands to get started:
 
 // Main setup logic
 (async () => {
-  console.log(`Version: v1.8.7`);
+  console.log(`Version: ${currentVersion}`);
   console.log(`https://www.getdream.io/`);
   console.log("");
   console.log(
@@ -218,11 +220,13 @@ Run the following commands to get started:
       ).trim();
 
       if (backendImage || frontendImage) {
+        console.log("= Existing ROS images detected!");
+        console.log("= WARNING: If you are using SQLite, please backup your database before proceeding and restore it after the process is complete.\n");
         const { updateImages } = await inquirer.prompt([
           {
             type: "list",
             name: "updateImages",
-            message: "Existing ROS images detected. Would you like to update them? (Warning: You may experience data loss)",
+            message: "Would you like to update the existing ROS images?",
             choices: [
               { name: "Yes, update to latest version", value: true },
               { name: "No, use existing version", value: false }
