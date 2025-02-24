@@ -18,7 +18,7 @@ import { execSync } from "child_process"; // ESM import for child_process
 import degit from "degit";
 import { existsSync } from "fs"; // ESM import for fs
 
-const currentVersion = "v1.9.2";
+const currentVersion = "v1.10.0";
 
 // Helper function to run shell commands
 const runCommand = (command, options = { stdio: "ignore" }) => {
@@ -68,27 +68,30 @@ const displayThankYou = () => {
 };
 
 // Function to display the final summary
-const displaySummary = (projectName, starterType, command) => {
-  console.log(`Finished! Your project "${projectName}" has been set up successfully!
+const displaySummary = (projectName, starterType, command, isRosOnly = false) => {
+  console.log(`Finished! ${isRosOnly ? 'ROS services have' : `Your project "${projectName}" has`} been set up successfully!
 
-===========================================
+===========================================`);
 
+  if (!isRosOnly) {
+    console.log(`
 Run the following commands to get started:
   cd ${projectName}
   ${command}
-`);
-  console.log(`Starter Frontend: http://localhost:3001`);
-  console.log(`Auth0 Login: testuser@dream.mf / Password123`);
-  console.log("");
-  if (starterType === "Complete" || starterType === "Complete ModernJS with BFF") {
-    console.log(`ROS Frontend: http://localhost:3000`);
-    console.log(`ROS Backend: http://localhost:4000`);
-    console.log(`ROS Backend (https): https://localhost:4001`);
-    console.log(`ROS Login: root@getdream.io / Dr34m!12345`);
+
+Starter Frontend: http://localhost:3001
+Auth0 Login: testuser@dream.mf / Password123`);
   }
-  console.log("");
-  console.log("===========================================");
-  console.log("");
+
+  if (starterType === "Complete" || starterType === "Complete ModernJS with BFF") {
+    console.log(`
+ROS Frontend: http://localhost:3000
+ROS Backend: http://localhost:4000
+ROS Backend (https): https://localhost:4001
+ROS Login: root@getdream.io / Dr34m!12345`);
+  }
+
+  console.log("\n===========================================");
   displayThankYou();
 };
 
@@ -104,6 +107,149 @@ Run the following commands to get started:
     "This setup will guide you through starting a new Dream.mf project.",
   );
   console.log("");
+
+  // Ask for setup type first
+  const { setupType } = await inquirer.prompt([
+    {
+      type: "list",
+      name: "setupType",
+      message: "What would you like to set up?",
+      choices: [
+        { name: "New Starter Project", value: "full" },
+        { name: "Only ROS (Remote Orchestration Services)", value: "ros" },
+      ],
+      default: "full",
+    },
+  ]);
+
+  // If ROS only, skip to container setup
+  if (setupType === "ros") {
+    console.log("= Setting up ROS containers...");
+    const containerRuntime = checkContainerRuntime();
+    console.log(`= Using ${containerRuntime} as container runtime...`);
+
+    try {
+      // Check if ROS images exist
+      const backendImage = execSync(
+        `${containerRuntime} images dreammf/ros-backend:latest --format "{{.Repository}}"`,
+        { encoding: 'utf-8', stdio: 'pipe' }
+      ).trim();
+      
+      const frontendImage = execSync(
+        `${containerRuntime} images dreammf/ros-frontend:latest --format "{{.Repository}}"`,
+        { encoding: 'utf-8', stdio: 'pipe' }
+      ).trim();
+
+      if (backendImage || frontendImage) {
+        console.log("= Existing ROS images detected!");
+        console.log("= WARNING: If you are using SQLite, please backup your database before proceeding and restore it after the process is complete.\n");
+        const { updateImages } = await inquirer.prompt([
+          {
+            type: "list",
+            name: "updateImages",
+            message: "Would you like to update the existing ROS images?",
+            choices: [
+              { name: "Yes, update to latest version", value: true },
+              { name: "No, use existing version", value: false }
+            ],
+            default: true,
+          }
+        ]);
+
+        if (!updateImages) {
+          console.log("Using existing ROS images...");
+          displayThankYou();
+          process.exit(0);
+        }
+      }
+
+      // Check for existing containers and handle accordingly
+      console.log("= Checking existing containers...");
+      try {
+        // Stop and remove containers using our required ports
+        console.log("= Checking for containers using required ports...");
+        try {
+          const portContainers = execSync(
+            `${containerRuntime} ps -q -f publish=4000 -f publish=4001 -f publish=3000`,
+            { encoding: 'utf-8' }
+          ).trim();
+          
+          if (portContainers) {
+            console.log("= Stopping containers using our ports...");
+            portContainers.split('\n').forEach(containerId => {
+              if (containerId) {
+                execSync(`${containerRuntime} stop ${containerId}`, { stdio: "ignore" });
+                execSync(`${containerRuntime} rm -f ${containerId}`, { stdio: "ignore" });
+              }
+            });
+          }
+        } catch (e) {
+          // Ignore errors if no containers found
+        }
+
+        // Remove any existing ROS containers
+        console.log("= Removing existing ROS containers...");
+        const rosContainers = execSync(
+          `${containerRuntime} ps -aq --filter ancestor=dreammf/ros-backend:latest --filter ancestor=dreammf/ros-frontend:latest`,
+          { encoding: 'utf-8' }
+        ).trim();
+
+        if (rosContainers) {
+          rosContainers.split('\n').forEach(containerId => {
+            if (containerId) {
+              execSync(`${containerRuntime} rm -f ${containerId}`, { stdio: "ignore" });
+            }
+          });
+        }
+
+        // Remove existing images to force new pulls
+        console.log("= Removing existing images...");
+        try {
+          execSync(`${containerRuntime} rmi -f dreammf/ros-backend:latest`, { stdio: "ignore" });
+          execSync(`${containerRuntime} rmi -f dreammf/ros-frontend:latest`, { stdio: "ignore" });
+        } catch (e) {
+          // Ignore errors if images don't exist
+        }
+
+        // Force pull latest images
+        console.log("= Pulling latest container images...");
+        execSync(`${containerRuntime} pull dreammf/ros-backend:latest`, { stdio: "ignore" });
+        execSync(`${containerRuntime} pull dreammf/ros-frontend:latest`, { stdio: "ignore" });
+
+        // Start containers with latest images
+        console.log("= Starting ROS Backend...");
+        try {
+          execSync(
+            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
+            { stdio: "ignore" }
+          );
+        } catch (err) {
+          console.error("Error starting ROS Backend:", err.message);
+          process.exit(1);
+        }
+
+        console.log("= Starting ROS Frontend...");
+        try {
+          execSync(
+            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -e BACKEND_URL=http://localhost:4000 -p 3000:80 dreammf/ros-frontend:latest`,
+            { stdio: "ignore" }
+          );
+        } catch (err) {
+          console.error("Error starting ROS Frontend:", err.message);
+          process.exit(1);
+        }
+      } catch (err) {
+        console.error("Error managing containers:", err.message);
+        process.exit(1);
+      }
+    } catch (err) {
+      console.error("Error during ROS setup:", err.message);
+      process.exit(1);
+    }
+
+    displaySummary("ros-services", "Complete", "", true);
+    return;
+  }
 
   // Ask for the project name
   const { projectName } = await inquirer.prompt([
@@ -301,7 +447,7 @@ Run the following commands to get started:
         console.log("= Starting ROS Backend...");
         try {
           execSync(
-            `${containerRuntime} run --tls-verify=false -d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
+            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
             { stdio: "ignore" }
           );
         } catch (err) {
