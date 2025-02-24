@@ -18,7 +18,7 @@ import { execSync } from "child_process"; // ESM import for child_process
 import degit from "degit";
 import { existsSync } from "fs"; // ESM import for fs
 
-const currentVersion = "v1.9.1";
+const currentVersion = "v1.9.2";
 
 // Helper function to run shell commands
 const runCommand = (command, options = { stdio: "ignore" }) => {
@@ -68,19 +68,19 @@ const displayThankYou = () => {
 };
 
 // Function to display the final summary
-const displaySummary = (projectName, starterType) => {
+const displaySummary = (projectName, starterType, command) => {
   console.log(`Finished! Your project "${projectName}" has been set up successfully!
 
 ===========================================
 
 Run the following commands to get started:
   cd ${projectName}
-  ${starterType === "Complete" ? "npx nx run-many -t serve --watch" : "pnpm start"}
+  ${command}
 `);
   console.log(`Starter Frontend: http://localhost:3001`);
   console.log(`Auth0 Login: testuser@dream.mf / Password123`);
   console.log("");
-  if (starterType === "Complete") {
+  if (starterType === "Complete" || starterType === "Complete ModernJS with BFF") {
     console.log(`ROS Frontend: http://localhost:3000`);
     console.log(`ROS Backend: http://localhost:4000`);
     console.log(`ROS Backend (https): https://localhost:4001`);
@@ -128,14 +128,15 @@ Run the following commands to get started:
   console.log("");
 
   // Ask for the starter type
-  const { starterType } = await inquirer.prompt([
+  const { starterType, command } = await inquirer.prompt([
     {
       type: "list",
       name: "starterType",
       message: "Which Dream.mf Starter would you like to use?",
       choices: [
-        { name: "Basic Starter Project", value: "Basic" },
-        { name: "Complete Dream.mf Platform", value: "Complete" },
+        { name: "Basic Starter Project", value: "Basic", command: "pnpm start" },
+        { name: "Complete Dream.mf Platform", value: "Complete", command: "npx nx run-many -t serve --watch" },
+        { name: 'Complete ModernJS with BFF Dream.mf Platform', value: 'Complete ModernJS with BFF', command: 'pnpm start' },
       ],
       default: "Basic",
     },
@@ -145,6 +146,7 @@ Run the following commands to get started:
   const repoUrls = {
     Basic: "getdreamio/starter-project-react",
     Complete: "getdreamio/starter-project-react-complete",
+    'Complete ModernJS with BFF': 'https://github.com/getdreamio/starter-project-modernjs-complete',
   };
 
   // Select the repository based on the starter type
@@ -170,7 +172,7 @@ Run the following commands to get started:
 
   // Check if directory already exists
   if (existsSync(projectName)) {
-    if (starterType === "Complete") {
+    if (starterType === "Complete" || starterType === "Complete ModernJS with BFF") {
       console.log(`= Directory "${projectName}" already exists. Proceeding with container setup...`);
     } else {
       console.error(
@@ -202,7 +204,7 @@ Run the following commands to get started:
   }
 
   // If Complete is selected, set up Docker containers for ROS
-  if (starterType === "Complete") {
+  if (starterType === "Complete" || starterType === "Complete ModernJS with BFF") {
     console.log("= Setting up containers...");
     const containerRuntime = checkContainerRuntime();
     console.log(`= Using ${containerRuntime} as container runtime...`);
@@ -299,7 +301,7 @@ Run the following commands to get started:
         console.log("= Starting ROS Backend...");
         try {
           execSync(
-            `${containerRuntime} run -d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
+            `${containerRuntime} run --tls-verify=false -d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
             { stdio: "ignore" }
           );
         } catch (err) {
@@ -310,7 +312,7 @@ Run the following commands to get started:
         console.log("= Starting ROS Frontend...");
         try {
           execSync(
-            `${containerRuntime} run -d --rm -e BACKEND_URL=http://localhost:4000 -p 3000:80 dreammf/ros-frontend:latest`,
+            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -e BACKEND_URL=http://localhost:4000 -p 3000:80 dreammf/ros-frontend:latest`,
             { stdio: "ignore" }
           );
         } catch (err) {
@@ -327,7 +329,7 @@ Run the following commands to get started:
     }
   }
 
-  displaySummary(projectName, starterType);
+  displaySummary(projectName, starterType, command);
   process.exit(0);
 })().catch((err) => {
   console.error("\n❌ Error: Error during setup:", err.message);
