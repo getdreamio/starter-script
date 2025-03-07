@@ -19,8 +19,7 @@ import { execSync } from "child_process"; // ESM import for child_process
 import degit from "degit";
 import { existsSync } from "fs"; // ESM import for fs
 
-const currentVersion = "v1.10.1";
-
+const currentVersion = "v1.10.2";
 
 // Helper function to run shell commands
 const runCommand = (command, options = { stdio: stdioMode }) => {
@@ -228,14 +227,14 @@ ROS Login: root@getdream.io / Dr34m!12345`);
 
         // Force pull latest images
         console.log("= Pulling latest container images...");
-        execSync(`${containerRuntime} pull dreammf/ros-backend:latest`, { stdio: stdioMode });
-        execSync(`${containerRuntime} pull dreammf/ros-frontend:latest`, { stdio: stdioMode });
+        execSync(`${containerRuntime} pull dreammf/ros-backend:latest-${process.arch === 'arm64' ? 'arm64' : 'amd64'}`, { stdio: stdioMode });
+        execSync(`${containerRuntime} pull dreammf/ros-frontend:latest-${process.arch === 'arm64' ? 'arm64' : 'amd64'}`, { stdio: stdioMode });
 
         // Start containers with latest images
         console.log("= Starting ROS Backend...");
         try {
           execSync(
-            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
+            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest-${process.arch === 'arm64' ? 'arm64' : 'amd64'}`,
             { stdio: stdioMode }
           );
         } catch (err) {
@@ -246,7 +245,7 @@ ROS Login: root@getdream.io / Dr34m!12345`);
         console.log("= Starting ROS Frontend...");
         try {
           execSync(
-            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -e BACKEND_URL=http://localhost:4000 -p 3000:80 dreammf/ros-frontend:latest`,
+            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -e BACKEND_URL=http://localhost:4000 -p 3000:80 dreammf/ros-frontend:latest-${process.arch === 'arm64' ? 'arm64' : 'amd64'}`,
             { stdio: stdioMode }
           );
         } catch (err) {
@@ -470,14 +469,14 @@ ROS Login: root@getdream.io / Dr34m!12345`);
 
         // Force pull latest images
         console.log("= Pulling latest container images...");
-        execSync(`${containerRuntime} pull dreammf/ros-backend:latest`, { stdio: stdioMode });
-        execSync(`${containerRuntime} pull dreammf/ros-frontend:latest`, { stdio: stdioMode });
+        execSync(`${containerRuntime} pull dreammf/ros-backend:latest-${process.arch === 'arm64' ? 'arm64' : 'amd64'}`, { stdio: stdioMode });
+        execSync(`${containerRuntime} pull dreammf/ros-frontend:latest-${process.arch === 'arm64' ? 'arm64' : 'amd64'}`, { stdio: stdioMode });
 
         // Start containers with latest images
         console.log("= Starting ROS Backend...");
         try {
           execSync(
-            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
+            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest-${process.arch === 'arm64' ? 'arm64' : 'amd64'}`,
             { stdio: stdioMode }
           );
         } catch (err) {
@@ -488,7 +487,7 @@ ROS Login: root@getdream.io / Dr34m!12345`);
         console.log("= Starting ROS Frontend...");
         try {
           execSync(
-            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -e BACKEND_URL=http://localhost:4000 -p 3000:80 dreammf/ros-frontend:latest`,
+            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -e BACKEND_URL=http://localhost:4000 -p 3000:80 dreammf/ros-frontend:latest-${process.arch === 'arm64' ? 'arm64' : 'amd64'}`,
             { stdio: stdioMode }
           );
         } catch (err) {
