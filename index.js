@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const stdioMode = process.argv.includes('--debug') ? 'inherit' : 'ignore';
 console.clear();
 console.log(`
 ▓█████▄  ██▀███  ▓█████  ▄▄▄       ███▄ ▄███▓      ███▄ ▄███▓  █████▒
@@ -18,10 +19,11 @@ import { execSync } from "child_process"; // ESM import for child_process
 import degit from "degit";
 import { existsSync } from "fs"; // ESM import for fs
 
-const currentVersion = "v1.10.0";
+const currentVersion = "v1.10.1";
+
 
 // Helper function to run shell commands
-const runCommand = (command, options = { stdio: "ignore" }) => {
+const runCommand = (command, options = { stdio: stdioMode }) => {
   try {
     execSync(command, options);
   } catch (err) {
@@ -34,21 +36,21 @@ const runCommand = (command, options = { stdio: "ignore" }) => {
 const checkContainerRuntime = () => {
   try {
     // First try Docker
-    execSync("docker --version", { stdio: "ignore" });
-    return "docker";
+    execSync('docker --version', { stdio: stdioMode });
+    return 'docker';
   } catch (err) {
     try {
       // Then try Podman
-      execSync("podman --version", { stdio: "ignore" });
-      return "podman";
+      execSync('podman --version', { stdio: stdioMode });
+      return 'podman';
     } catch (err) {
       console.error(
-        "\n❌ Error: Neither Docker nor Podman is installed on your system.",
+        '\n❌ Error: Neither Docker nor Podman is installed on your system.',
       );
       console.log(
-        "Please install either Docker (https://docs.docker.com/get-docker/)",
+        'Please install either Docker (https://docs.docker.com/get-docker/)',
       );
-      console.log("or Podman (https://podman.io/getting-started/installation)");
+      console.log('or Podman (https://podman.io/getting-started/installation)');
       process.exit(1);
     }
   }
@@ -130,15 +132,17 @@ ROS Login: root@getdream.io / Dr34m!12345`);
 
     try {
       // Check if ROS images exist
-      const backendImage = execSync(
+      const backendImageRaw = execSync(
         `${containerRuntime} images dreammf/ros-backend:latest --format "{{.Repository}}"`,
-        { encoding: 'utf-8', stdio: 'pipe' }
-      ).trim();
+        { encoding: 'utf-8', stdio: ['inherit', 'pipe', 'pipe'] }
+      );
+      const backendImage = backendImageRaw?.trim() || null;
       
-      const frontendImage = execSync(
+      const frontendImageRaw = execSync(
         `${containerRuntime} images dreammf/ros-frontend:latest --format "{{.Repository}}"`,
-        { encoding: 'utf-8', stdio: 'pipe' }
-      ).trim();
+        { encoding: 'utf-8', stdio: ['inherit', 'pipe', 'pipe'] }
+      );
+      const frontendImage = frontendImageRaw?.trim() || null;
 
       if (backendImage || frontendImage) {
         console.log("= Existing ROS images detected!");
@@ -169,18 +173,29 @@ ROS Login: root@getdream.io / Dr34m!12345`);
         // Stop and remove containers using our required ports
         console.log("= Checking for containers using required ports...");
         try {
-          const portContainers = execSync(
-            `${containerRuntime} ps -q -f publish=4000 -f publish=4001 -f publish=3000`,
-            { encoding: 'utf-8' }
+          // Get all running containers and their port mappings in a cross-platform way
+          const allContainers = execSync(
+            `${containerRuntime} ps --format "{{.ID}}:{{.Ports}}"`,
+            { encoding: 'utf-8', stdio: stdioMode }
           ).trim();
           
-          if (portContainers) {
+          // Filter containers using our ports (4000, 4001, 3000)
+          const portContainers = allContainers
+            .split('\n')
+            .filter(line => {
+              // Check if this container uses any of our required ports
+              return line.includes(':4000-') || line.includes(':4000/') || 
+                     line.includes(':4001-') || line.includes(':4001/') || 
+                     line.includes(':3000-') || line.includes(':3000/');
+            })
+            .map(line => line.split(':')[0]) // Extract container ID
+            .filter(id => id.trim().length > 0); // Filter out empty IDs
+          
+          if (portContainers.length > 0) {
             console.log("= Stopping containers using our ports...");
-            portContainers.split('\n').forEach(containerId => {
-              if (containerId) {
-                execSync(`${containerRuntime} stop ${containerId}`, { stdio: "ignore" });
-                execSync(`${containerRuntime} rm -f ${containerId}`, { stdio: "ignore" });
-              }
+            portContainers.forEach(containerId => {
+              execSync(`${containerRuntime} stop ${containerId}`, { stdio: stdioMode });
+              execSync(`${containerRuntime} rm -f ${containerId}`, { stdio: stdioMode });
             });
           }
         } catch (e) {
@@ -205,23 +220,23 @@ ROS Login: root@getdream.io / Dr34m!12345`);
         // Remove existing images to force new pulls
         console.log("= Removing existing images...");
         try {
-          execSync(`${containerRuntime} rmi -f dreammf/ros-backend:latest`, { stdio: "ignore" });
-          execSync(`${containerRuntime} rmi -f dreammf/ros-frontend:latest`, { stdio: "ignore" });
+          execSync(`${containerRuntime} rmi -f dreammf/ros-backend:latest`, { stdio: stdioMode });
+          execSync(`${containerRuntime} rmi -f dreammf/ros-frontend:latest`, { stdio: stdioMode });
         } catch (e) {
           // Ignore errors if images don't exist
         }
 
         // Force pull latest images
         console.log("= Pulling latest container images...");
-        execSync(`${containerRuntime} pull dreammf/ros-backend:latest`, { stdio: "ignore" });
-        execSync(`${containerRuntime} pull dreammf/ros-frontend:latest`, { stdio: "ignore" });
+        execSync(`${containerRuntime} pull dreammf/ros-backend:latest`, { stdio: stdioMode });
+        execSync(`${containerRuntime} pull dreammf/ros-frontend:latest`, { stdio: stdioMode });
 
         // Start containers with latest images
         console.log("= Starting ROS Backend...");
         try {
           execSync(
             `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
-            { stdio: "ignore" }
+            { stdio: stdioMode }
           );
         } catch (err) {
           console.error("Error starting ROS Backend:", err.message);
@@ -232,14 +247,14 @@ ROS Login: root@getdream.io / Dr34m!12345`);
         try {
           execSync(
             `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -e BACKEND_URL=http://localhost:4000 -p 3000:80 dreammf/ros-frontend:latest`,
-            { stdio: "ignore" }
+            { stdio: stdioMode }
           );
         } catch (err) {
           console.error("Error starting ROS Frontend:", err.message);
           process.exit(1);
         }
       } catch (err) {
-        console.error("Error managing containers:", err.message);
+        console.error("Error during ROS setup:", err.message);
         process.exit(1);
       }
     } catch (err) {
@@ -308,7 +323,7 @@ ROS Login: root@getdream.io / Dr34m!12345`);
   // Check for the existence of pnpm
   try {
     console.log("= Checking for pnpm...");
-    execSync("pnpm --version", { stdio: "ignore" });
+    execSync("pnpm --version", { stdio: stdioMode });
   } catch (err) {
     console.error(
       "\n❌ Error: pnpm is not installed. Please install it before proceeding. (npm install -g pnpm)",
@@ -357,15 +372,19 @@ ROS Login: root@getdream.io / Dr34m!12345`);
 
     try {
       // Check if ROS images exist
-      const backendImage = execSync(
+      const backendImageRaw = execSync(
         `${containerRuntime} images dreammf/ros-backend:latest --format "{{.Repository}}"`,
-        { encoding: 'utf-8', stdio: 'pipe' }
-      ).trim();
+        { encoding: 'utf-8', stdio: ['inherit', 'pipe', 'pipe'] }
+      );
+      console.log('## RAW backendImage:', backendImageRaw);
+      const backendImage = backendImageRaw?.trim() || null;
       
-      const frontendImage = execSync(
+      const frontendImageRaw = execSync(
         `${containerRuntime} images dreammf/ros-frontend:latest --format "{{.Repository}}"`,
-        { encoding: 'utf-8', stdio: 'pipe' }
-      ).trim();
+        { encoding: 'utf-8', stdio: ['inherit', 'pipe', 'pipe'] }
+      );
+      console.log('## RAW frontendImage:', frontendImageRaw);
+      const frontendImage = frontendImageRaw?.trim() || null;
 
       if (backendImage || frontendImage) {
         console.log("= Existing ROS images detected!");
@@ -396,18 +415,29 @@ ROS Login: root@getdream.io / Dr34m!12345`);
         // Stop and remove containers using our required ports
         console.log("= Checking for containers using required ports...");
         try {
-          const portContainers = execSync(
-            `${containerRuntime} ps -q -f publish=4000 -f publish=4001 -f publish=3000`,
-            { encoding: 'utf-8' }
+          // Get all running containers and their port mappings in a cross-platform way
+          const allContainers = execSync(
+            `${containerRuntime} ps --format "{{.ID}}:{{.Ports}}"`,
+            { encoding: 'utf-8', stdio: stdioMode }
           ).trim();
           
-          if (portContainers) {
+          // Filter containers using our ports (4000, 4001, 3000)
+          const portContainers = allContainers
+            .split('\n')
+            .filter(line => {
+              // Check if this container uses any of our required ports
+              return line.includes(':4000-') || line.includes(':4000/') || 
+                     line.includes(':4001-') || line.includes(':4001/') || 
+                     line.includes(':3000-') || line.includes(':3000/');
+            })
+            .map(line => line.split(':')[0]) // Extract container ID
+            .filter(id => id.trim().length > 0); // Filter out empty IDs
+          
+          if (portContainers.length > 0) {
             console.log("= Stopping containers using our ports...");
-            portContainers.split('\n').forEach(containerId => {
-              if (containerId) {
-                execSync(`${containerRuntime} stop ${containerId}`, { stdio: "ignore" });
-                execSync(`${containerRuntime} rm -f ${containerId}`, { stdio: "ignore" });
-              }
+            portContainers.forEach(containerId => {
+              execSync(`${containerRuntime} stop ${containerId}`, { stdio: stdioMode });
+              execSync(`${containerRuntime} rm -f ${containerId}`, { stdio: stdioMode });
             });
           }
         } catch (e) {
@@ -432,23 +462,23 @@ ROS Login: root@getdream.io / Dr34m!12345`);
         // Remove existing images to force new pulls
         console.log("= Removing existing images...");
         try {
-          execSync(`${containerRuntime} rmi -f dreammf/ros-backend:latest`, { stdio: "ignore" });
-          execSync(`${containerRuntime} rmi -f dreammf/ros-frontend:latest`, { stdio: "ignore" });
+          execSync(`${containerRuntime} rmi -f dreammf/ros-backend:latest`, { stdio: stdioMode });
+          execSync(`${containerRuntime} rmi -f dreammf/ros-frontend:latest`, { stdio: stdioMode });
         } catch (e) {
           // Ignore errors if images don't exist
         }
 
         // Force pull latest images
         console.log("= Pulling latest container images...");
-        execSync(`${containerRuntime} pull dreammf/ros-backend:latest`, { stdio: "ignore" });
-        execSync(`${containerRuntime} pull dreammf/ros-frontend:latest`, { stdio: "ignore" });
+        execSync(`${containerRuntime} pull dreammf/ros-backend:latest`, { stdio: stdioMode });
+        execSync(`${containerRuntime} pull dreammf/ros-frontend:latest`, { stdio: stdioMode });
 
         // Start containers with latest images
         console.log("= Starting ROS Backend...");
         try {
           execSync(
             `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
-            { stdio: "ignore" }
+            { stdio: stdioMode }
           );
         } catch (err) {
           console.error("Error starting ROS Backend:", err.message);
@@ -459,7 +489,7 @@ ROS Login: root@getdream.io / Dr34m!12345`);
         try {
           execSync(
             `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -e BACKEND_URL=http://localhost:4000 -p 3000:80 dreammf/ros-frontend:latest`,
-            { stdio: "ignore" }
+            { stdio: stdioMode }
           );
         } catch (err) {
           console.error("Error starting ROS Frontend:", err.message);
