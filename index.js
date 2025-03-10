@@ -18,8 +18,9 @@ import inquirer from "inquirer"; // ESM import for inquirer
 import { execSync } from "child_process"; // ESM import for child_process
 import degit from "degit";
 import { existsSync } from "fs"; // ESM import for fs
+import os from "os"; // For architecture detection
 
-const currentVersion = "v1.10.3";
+const currentVersion = "v1.10.5";
 
 // Helper function to run shell commands
 const runCommand = (command, options = { stdio: stdioMode }) => {
@@ -52,6 +53,18 @@ const checkContainerRuntime = () => {
       console.log('or Podman (https://podman.io/getting-started/installation)');
       process.exit(1);
     }
+  }
+};
+
+// Function to detect system architecture
+const detectArchitecture = () => {
+  const arch = os.arch();
+  console.log(`= Detected system architecture: ${arch}`);
+  
+  if (arch === 'arm64') {
+    return 'arm64';
+  } else {
+    return 'amd64';
   }
 };
 
@@ -123,11 +136,40 @@ ROS Login: root@getdream.io / Dr34m!12345`);
     },
   ]);
 
+  // Detect architecture
+  const arch = detectArchitecture();
+  let forcePlatform = "";
+
   // If ROS only, skip to container setup
   if (setupType === "ros") {
     console.log("= Setting up ROS containers...");
     const containerRuntime = checkContainerRuntime();
     console.log(`= Using ${containerRuntime} as container runtime...`);
+
+    // If on ARM architecture, ask if user wants to try AMD64 emulation
+    if (arch === 'arm64') {
+      const { emulateAmd64 } = await inquirer.prompt([
+        {
+          type: "list",
+          name: "emulateAmd64",
+          message: "Your system is running on ARM64 architecture. Dream.mf ROS images are currently only available for AMD64. Would you like to try running with AMD64 emulation?",
+          choices: [
+            { name: "Yes, use AMD64 emulation (may be slower)", value: true },
+            { name: "No, exit setup", value: false }
+          ],
+          default: true,
+        }
+      ]);
+
+      if (!emulateAmd64) {
+        console.log("Exiting setup. Please use an AMD64 system or wait for ARM64 images to become available.");
+        process.exit(0);
+      }
+      
+      // Set platform flag for docker
+      forcePlatform = "--platform=linux/amd64";
+      console.log("= Will use AMD64 emulation for containers");
+    }
 
     try {
       // Check if ROS images exist
@@ -225,16 +267,16 @@ ROS Login: root@getdream.io / Dr34m!12345`);
           // Ignore errors if images don't exist
         }
 
-        // Force pull latest images
+        // Force pull latest images with platform flag if needed
         console.log("= Pulling latest container images...");
-        execSync(`${containerRuntime} pull dreammf/ros-backend:latest`, { stdio: stdioMode });
-        execSync(`${containerRuntime} pull dreammf/ros-frontend:latest`, { stdio: stdioMode });
+        execSync(`${containerRuntime} pull ${forcePlatform} ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}dreammf/ros-backend:latest`, { stdio: stdioMode });
+        execSync(`${containerRuntime} pull ${forcePlatform} ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}dreammf/ros-frontend:latest`, { stdio: stdioMode });
 
         // Start containers with latest images
         console.log("= Starting ROS Backend...");
         try {
           execSync(
-            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
+            `${containerRuntime} run ${forcePlatform} ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
             { stdio: stdioMode }
           );
         } catch (err) {
@@ -245,7 +287,7 @@ ROS Login: root@getdream.io / Dr34m!12345`);
         console.log("= Starting ROS Frontend...");
         try {
           execSync(
-            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -e BACKEND_URL=http://localhost:4000 -p 3000:80 dreammf/ros-frontend:latest`,
+            `${containerRuntime} run ${forcePlatform} ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -e BACKEND_URL=http://localhost:4000 -p 3000:80 dreammf/ros-frontend:latest`,
             { stdio: stdioMode }
           );
         } catch (err) {
@@ -288,19 +330,25 @@ ROS Login: root@getdream.io / Dr34m!12345`);
   console.log("");
 
   // Ask for the starter type
-  const { starterType, command } = await inquirer.prompt([
+  const { starterType } = await inquirer.prompt([
     {
       type: "list",
       name: "starterType",
       message: "Which Dream.mf Starter would you like to use?",
       choices: [
-        { name: "Basic Starter Project", value: "Basic", command: "pnpm start" },
-        { name: "Complete Dream.mf Platform", value: "Complete", command: "npx nx run-many -t serve --watch" },
-        { name: 'Complete ModernJS with BFF Dream.mf Platform', value: 'Complete ModernJS with BFF', command: 'pnpm start' },
+        { name: "Basic Starter Project", value: "Basic" },
+        { name: "Complete Dream.mf Platform", value: "Complete" },
+        { name: 'Complete ModernJS with BFF Dream.mf Platform', value: 'Complete ModernJS with BFF' },
       ],
       default: "Basic",
     },
   ]);
+
+  // Define commands based on starter type
+  let command = "pnpm start";
+  if (starterType === "Complete") {
+    command = "npx nx run-many -t serve --watch";
+  }
 
   // Define repository URLs for each starter type
   const repoUrls = {
@@ -368,6 +416,31 @@ ROS Login: root@getdream.io / Dr34m!12345`);
     console.log("= Setting up containers...");
     const containerRuntime = checkContainerRuntime();
     console.log(`= Using ${containerRuntime} as container runtime...`);
+
+    // If on ARM architecture, ask if user wants to try AMD64 emulation
+    if (arch === 'arm64') {
+      const { emulateAmd64 } = await inquirer.prompt([
+        {
+          type: "list",
+          name: "emulateAmd64",
+          message: "Your system is running on ARM64 architecture. Dream.mf ROS images are currently only available for AMD64. Would you like to try running with AMD64 emulation?",
+          choices: [
+            { name: "Yes, use AMD64 emulation (may be slower)", value: true },
+            { name: "No, exit setup", value: false }
+          ],
+          default: true,
+        }
+      ]);
+
+      if (!emulateAmd64) {
+        console.log("Exiting setup. Please use an AMD64 system or wait for ARM64 images to become available.");
+        process.exit(0);
+      }
+      
+      // Set platform flag for docker
+      forcePlatform = "--platform=linux/amd64";
+      console.log("= Will use AMD64 emulation for containers");
+    }
 
     try {
       // Check if ROS images exist
@@ -467,16 +540,16 @@ ROS Login: root@getdream.io / Dr34m!12345`);
           // Ignore errors if images don't exist
         }
 
-        // Force pull latest images
+        // Force pull latest images with platform flag if needed
         console.log("= Pulling latest container images...");
-        execSync(`${containerRuntime} pull dreammf/ros-backend:latest`, { stdio: stdioMode });
-        execSync(`${containerRuntime} pull dreammf/ros-frontend:latest`, { stdio: stdioMode });
+        execSync(`${containerRuntime} pull ${forcePlatform} dreammf/ros-backend:latest`, { stdio: stdioMode });
+        execSync(`${containerRuntime} pull ${forcePlatform} dreammf/ros-frontend:latest`, { stdio: stdioMode });
 
         // Start containers with latest images
         console.log("= Starting ROS Backend...");
         try {
           execSync(
-            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
+            `${containerRuntime} run ${forcePlatform} ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -p 4001:4001 -p 4000:4000 dreammf/ros-backend:latest`,
             { stdio: stdioMode }
           );
         } catch (err) {
@@ -487,7 +560,7 @@ ROS Login: root@getdream.io / Dr34m!12345`);
         console.log("= Starting ROS Frontend...");
         try {
           execSync(
-            `${containerRuntime} run ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -e BACKEND_URL=http://localhost:4000 -p 3000:80 dreammf/ros-frontend:latest`,
+            `${containerRuntime} run ${forcePlatform} ${containerRuntime === 'podman' ? '--tls-verify=false ' : ''}-d --rm -e BACKEND_URL=http://localhost:4000 -p 3000:80 dreammf/ros-frontend:latest`,
             { stdio: stdioMode }
           );
         } catch (err) {
