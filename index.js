@@ -60,21 +60,21 @@ const runCommand = (command, options = { stdio: stdioMode }) => {
     return result ? result.toString() : '';
   } catch (err) {
     console.error(`░ Failed to execute: ${command}, ${err}`);
-    process.exit(1);
+    throw err; // Throw the error instead of exiting
   }
 };
 
 // Helper function to check container runtime availability
 const checkContainerRuntime = () => {
   try {
-    // First try Docker
-    runCommand('docker --version', { stdio: stdioMode });
-    return 'docker';
+    // First try Podman
+    runCommand('podman --version', { stdio: stdioMode });
+    return 'podman';
   } catch (err) {
     try {
-      // Then try Podman
-      runCommand('podman --version', { stdio: stdioMode });
-      return 'podman';
+      // Then try Docker
+      runCommand('docker --version', { stdio: stdioMode });
+      return 'docker';
     } catch (err) {
       console.error(
         '\n❌ Error: Neither Docker nor Podman is installed on your system.',
